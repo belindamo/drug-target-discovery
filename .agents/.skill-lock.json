@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "project:research-log": {
+      "name": "research-log",
+      "scope": "project",
+      "source": "research-log",
+      "sourceType": "hub",
+      "hubSkillId": "e1290e83-5fb3-4111-bd84-6a0a9f863c3d",
+      "hubSkillVersionId": "119a5328-f308-4085-b513-3cacef92ff89",
+      "hubVersion": "4",
+      "installMode": "symlink",
+      "installedAt": "2026-03-12T23:25:19.635Z",
+      "updatedAt": "2026-03-26T23:55:45.651Z"
+    }
+  }
+}
