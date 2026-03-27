@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Causal Drug Target Discovery for IPF</title>
+<style>
+  /* === Sundial-inspired design system === */
+  :root {
+    --bg: #f5f5f0;
+    --surface: rgba(214, 211, 203, 0.35);
+    --surface-solid: #e8e6df;
+    --border: #c8c4ba;
+    --border-hover: #a8a498;
+    --text: #292524;
+    --text-muted: #78716c;
+    --text-light: #a8a29e;
+    --white: #ffffff;
+    --accent: #1d4ed8;
+    --accent-light: #dbeafe;
+    --green: #166534;
+    --green-bg: #dcfce7;
+    --amber: #92400e;
+    --amber-bg: #fef3c7;
+    --red: #991b1b;
+    --red-bg: #fee2e2;
+    --purple: #6b21a8;
+    --purple-bg: #f3e8ff;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === Navigation === */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(245, 245, 240, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  nav .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  nav .nav-left a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  nav .nav-left a:hover { color: var(--text); }
+  nav .nav-left .sep { color: var(--text-light); }
+  nav .nav-left .current { color: var(--text); font-weight: 500; }
+  nav .nav-right {
+    display: flex;
+    gap: 1.25rem;
+    font-size: 0.8rem;
+  }
+  nav .nav-right a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  nav .nav-right a:hover { color: var(--text); }
+
+  /* === Layout === */
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  /* === Hero === */
+  .hero {
+    padding: 5rem 0 3.5rem;
+    text-align: center;
+  }
+  .hero-emoji {
+    font-size: 2.5rem;
+    margin-bottom: 1.25rem;
+    display: block;
+  }
+  .hero h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 2.5rem;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  .hero .subtitle {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    max-width: 540px;
+    margin: 0 auto 1.5rem;
+    line-height: 1.6;
+  }
+  .hero .meta {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    flex-wrap: wrap;
+  }
+  .hero .meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  /* === Divider === */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 3rem 0;
+  }
+  hr.thin {
+    margin: 2rem 0;
+  }
+
+  /* === Prose === */
+  .prose {
+    font-size: 1.05rem;
+    line-height: 1.78;
+    color: var(--text);
+  }
+  .prose p { margin-bottom: 1.25rem; }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong { font-weight: 600; }
+  .prose a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(29, 78, 216, 0.3);
+    text-underline-offset: 2px;
+  }
+  .prose a:hover { text-decoration-color: var(--accent); }
+
+  /* === Section headings === */
+  .section-heading {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    margin-bottom: 1.25rem;
+    line-height: 1.3;
+  }
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+  }
+
+  /* === Callout / Pull quote === */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    margin: 2rem 0;
+  }
+  .callout.highlight {
+    background: var(--amber-bg);
+    border-color: #fbbf24;
+  }
+  .callout.danger {
+    background: var(--red-bg);
+    border-color: #fca5a5;
+  }
+  .callout.success {
+    background: var(--green-bg);
+    border-color: #86efac;
+  }
+  .pull-quote {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.35rem;
+    line-height: 1.5;
+    color: var(--text);
+    text-align: center;
+    padding: 2rem 1.5rem;
+    margin: 2.5rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-style: italic;
+  }
+  .pull-quote .attr {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.8rem;
+    font-style: normal;
+    color: var(--text-light);
+    margin-top: 0.75rem;
+  }
+
+  /* === Stat grid === */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+  .stat {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1.25rem;
+    text-align: center;
+  }
+  .stat .number {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.1;
+    margin-bottom: 0.25rem;
+  }
+  .stat .label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
+
+  /* === Cards === */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: var(--border-hover); }
+  .card .card-rank {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+  }
+  .card h3 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.2rem;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+    line-height: 1.35;
+  }
+  .card .card-body {
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+  .card .card-body p { margin-bottom: 0.75rem; }
+  .card .card-body p:last-child { margin-bottom: 0; }
+  .card .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+  }
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+  .tag.green { background: var(--green-bg); color: var(--green); }
+  .tag.amber { background: var(--amber-bg); color: var(--amber); }
+  .tag.red { background: var(--red-bg); color: var(--red); }
+  .tag.purple { background: var(--purple-bg); color: var(--purple); }
+  .tag.blue { background: var(--accent-light); color: var(--accent); }
+  .tag.neutral {
+    background: var(--surface-solid);
+    color: var(--text-muted);
+  }
+
+  /* === Table === */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+  thead th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(200, 196, 186, 0.4);
+    vertical-align: top;
+    color: var(--text);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(214, 211, 203, 0.2); }
+
+  /* === Pipeline steps === */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 2rem 0;
+  }
+  .pipe-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 0;
+    position: relative;
+  }
+  .pipe-step:not(:last-child) { border-bottom: 1px solid rgba(200, 196, 186, 0.3); }
+  .pipe-num {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--surface-solid);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .pipe-content { flex: 1; }
+  .pipe-content .pipe-title {
+    font-weight: 600;
+    font-size: 0.92rem;
+    margin-bottom: 0.15rem;
+  }
+  .pipe-content .pipe-detail {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  /* === Pathway cluster grid === */
+  .cluster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+  }
+  .cluster-item {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.15rem;
+    transition: border-color 0.15s;
+  }
+  .cluster-item:hover { border-color: var(--border-hover); }
+  .cluster-item .cluster-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 0.35rem;
+  }
+  .cluster-item .cluster-targets {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* === Failure table === */
+  .failure-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+  }
+  .failure-card {
+    background: var(--red-bg);
+    border: 1px solid #fca5a5;
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.15rem;
+  }
+  .failure-card .drug-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--red);
+    margin-bottom: 0.25rem;
+  }
+  .failure-card .target-name {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+  }
+  .failure-card .reason {
+    font-size: 0.75rem;
+    color: var(--red);
+  }
+
+  /* === Timeline === */
+  .timeline {
+    margin: 2rem 0;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--border);
+  }
+  .tl-item {
+    position: relative;
+    padding: 0 0 1.5rem 1.25rem;
+  }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 0.5rem;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 2px solid var(--bg);
+    transform: translateX(-1px);
+  }
+  .tl-item.active::before { background: var(--accent); }
+  .tl-date {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-light);
+    margin-bottom: 0.15rem;
+  }
+  .tl-title {
+    font-weight: 500;
+    font-size: 0.88rem;
+    margin-bottom: 0.15rem;
+  }
+  .tl-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+
+  /* === Files grid === */
+  .files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+  }
+  .file-item {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1rem;
+    font-size: 0.82rem;
+    transition: border-color 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .file-item:hover { border-color: var(--border-hover); }
+  .file-item .file-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .file-item .file-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  /* === Footer === */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 0;
+    margin-top: 4rem;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-light);
+    line-height: 1.6;
+  }
+  footer a {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-decoration-color: rgba(0,0,0,0.15);
+    text-underline-offset: 2px;
+  }
+  footer a:hover { color: var(--text); }
+
+  /* === Responsive === */
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 1.85rem; }
+    .hero { padding: 3.5rem 0 2.5rem; }
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+    .failure-row { grid-template-columns: 1fr; }
+    .pull-quote { font-size: 1.15rem; padding: 1.5rem 1rem; }
+    .section-heading { font-size: 1.35rem; }
+    .cluster-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-left">
+    <a href="https://sundialhub.com/projects">Showcase</a>
+    <span class="sep">/</span>
+    <span class="current">IPF Drug Target Discovery</span>
+  </div>
+  <div class="nav-right">
+    <a href="#pipeline">Pipeline</a>
+    <a href="#findings">Findings</a>
+    <a href="#targets">Targets</a>
+    <a href="#files">Data</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <span class="hero-emoji">🧬</span>
+    <h1>What if genetics could tell us which IPF drugs to build?</h1>
+    <p class="subtitle">A computational pipeline that maps GWAS signals to causal drug targets for idiopathic pulmonary fibrosis — and finds that pharma is looking in the wrong places.</p>
+    <div class="meta">
+      <span>13 research sessions</span>
+      <span>25 ranked targets</span>
+      <span>33 GWAS loci</span>
+      <span>March 2026</span>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Chapter 1: The Problem -->
+  <div class="section-label">Chapter 1</div>
+  <h2 class="section-heading">A disease with few options and fewer answers</h2>
+
+  <div class="prose">
+    <p>Idiopathic pulmonary fibrosis replaces healthy lung with scar tissue. Median survival is 3&ndash;5 years from diagnosis. Three drugs are approved &mdash; pirfenidone, nintedanib, and nerandomilast &mdash; but none halt disease progression, and <strong>none were designed around genetic evidence</strong>.</p>
+    <p>Meanwhile, the IPF clinical pipeline is busy. Dozens of trials are running. But a recurring pattern has emerged: high-profile drugs keep failing. Bexotegrast was stopped by its safety board. Galectin-3 inhibitor GB0139 performed <em>worse</em> than placebo. Roche wrote off $400M on zinpentraxin. All three lacked genetic support.</p>
+    <p>We asked a simple question: <strong>what do the genetics actually say?</strong></p>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="number">~83%</div>
+      <div class="label">of active IPF trials target genes without GWAS support</div>
+    </div>
+    <div class="stat">
+      <div class="number">≥15</div>
+      <div class="label">genetically validated targets with zero trials</div>
+    </div>
+    <div class="stat">
+      <div class="number">3/5</div>
+      <div class="label">recent high-profile failures lacked genetic evidence</div>
+    </div>
+    <div class="stat">
+      <div class="number">4</div>
+      <div class="label">immediately testable repurposing opportunities found</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Chapter 2: The Approach -->
+  <div class="section-label" id="pipeline">Chapter 2</div>
+  <h2 class="section-heading">A genetics-first pipeline, built entirely from public data</h2>
+
+  <div class="prose">
+    <p>We constructed a systematic pipeline that starts from genome-wide association studies and narrows to actionable drug targets. Every step uses published, public data &mdash; no lab experiments, no proprietary datasets. The pipeline applies progressively stricter causal filters: statistical association, then expression mediation, then colocalization, then causal inference, then druggability, then safety.</p>
+  </div>
+
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="pipe-num">1</div>
+      <div class="pipe-content">
+        <div class="pipe-title">GWAS Locus Curation</div>
+        <div class="pipe-detail">33 genome-wide significant loci from 7 studies, GRCh38 coordinates verified against dbSNP. Largest: Chin 2025 (5,159 cases). Strongest signal: MUC5B rs35705950 (OR = 4.11, p &lt; 10<sup>-121</sup>).</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">2</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Transcriptome-Wide Association</div>
+        <div class="pipe-detail">25 gene-tissue associations via S-PrediXcan and OTTERS framework against GTEx v8 lung, blood, and fibroblast models.</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">3</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Bayesian Colocalization</div>
+        <div class="pipe-detail">25 colocalization tests (coloc, eCAVIAR, SMR). Threshold: PP.H4 &gt; 0.8 or CLPP &gt; 0.5. Strongest: MUC5B (1.00), ATP11A in smoker lung (0.996), DPP9 in fibroblasts (0.968).</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">4</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Mendelian Randomization</div>
+        <div class="pipe-detail">21 causal gene-disease links tested with IVW, MR-Egger, and HEIDI pleiotropy filtering. Key: IL-7 protective (OR = 0.67), BTRC strongly protective (OR = 0.30).</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">5</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Druggability Assessment</div>
+        <div class="pipe-detail">Open Targets tractability (up to 10 buckets across SM/AB/PR/OC), ChEMBL compound review, clinical-stage drug identification. Most tractable: ACVRL1 (10 buckets).</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">6</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Safety Screening</div>
+        <div class="pipe-detail">DepMap 25Q3 CRISPR Chronos scores for all targets. None are common essential. Safety flags: KIF15 (8.4% dependent lines), SPDL1 (inferred essential).</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">7</div>
+      <div class="pipe-content">
+        <div class="pipe-title">Clinical Gap Analysis</div>
+        <div class="pipe-detail">Cross-reference against all active IPF trials on ClinicalTrials.gov (March 2026). Result: ~83% of pipeline programs lack genetic support.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Chapter 3: The Discovery -->
+  <div class="section-label" id="findings">Chapter 3</div>
+  <h2 class="section-heading">The pipeline's single most striking finding</h2>
+
+  <div class="prose">
+    <p>DPP9 ranks second in combined genetic evidence. It has a GWAS signal at p = 1.7 &times; 10<sup>-12</sup> and colocalizes beautifully with fibroblast eQTLs (PP.H4 = 0.968). Cryo-EM structures show exactly how DPP9 keeps the NLRP1 inflammasome in check &mdash; it sequesters freed NLRP1 fragments like a bomb defuser.</p>
+    <p>But here's the paradox: <strong>you cannot inhibit DPP9 to treat IPF.</strong> Inhibiting DPP9 activates NLRP1, triggers pyroptosis, floods the tissue with IL-1&beta;, and worsens fibrosis. Homozygous Dpp9 mutant mice die within 24 hours.</p>
+    <p>The breakthrough comes from the rescue experiments. Deleting just one copy of the IL-1 receptor (<em>Il-1r</em>) is enough to save those mice. This means the fibrotic damage flows through a single bottleneck: <strong>IL-1&beta;</strong>.</p>
+  </div>
+
+  <div class="callout highlight">
+    <div class="prose">
+      <p><strong>Three FDA-approved IL-1&beta; inhibitors exist</strong> &mdash; anakinra, canakinumab, and rilonacept &mdash; with over 10,000 patient-years of safety data across rheumatology and autoinflammatory disease. <strong>None have ever been tested in IPF.</strong></p>
+      <p style="margin-bottom:0">This is the pipeline's most actionable finding: a genetically anchored drug target (DPP9 &rarr; NLRP1 &rarr; IL-1&beta;), a clear mechanism, and approved drugs sitting on the shelf.</p>
+    </div>
+  </div>
+
+  <div class="pull-quote">
+    "The most impactful opportunities are not novel molecules &mdash; they are approved drugs that have never been tested in the right disease."
+  </div>
+
+  <hr>
+
+  <!-- Chapter 4: The Top 5 -->
+  <div class="section-label">Chapter 4</div>
+  <h2 class="section-heading">Five opportunities the field is missing</h2>
+
+  <div class="prose">
+    <p>Beyond IL-1&beta;, the pipeline identified four additional targets where genetically supported interventions are either already approved or in advanced clinical development &mdash; yet have never been tested in IPF.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-rank">#1 &mdash; Strongest signal</div>
+    <h3>MUC5B promoter variant &rarr; SPL5B inhaled ASO</h3>
+    <div class="card-body">
+      <p>The rs35705950 variant (OR = 4.11) is the single strongest genetic risk factor for any common fibrotic disease. It drives MUC5B overexpression in distal airways. SpliSense's SPL5B antisense oligonucleotide, entering Phase 1 in 2026, is the first therapy designed to directly target this signal. Platform validated by SPL84 success in cystic fibrosis.</p>
+    </div>
+    <div class="tag-row">
+      <span class="tag green">Coloc PP.H4 = 1.00</span>
+      <span class="tag blue">Phase 1 entering 2026</span>
+      <span class="tag neutral">Tier 1 evidence</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-rank">#2 &mdash; Biggest translational gap</div>
+    <h3>DPP9 &rarr; NLRP1 &rarr; IL-1&beta; blockade</h3>
+    <div class="card-body">
+      <p>DPP9 loss de-represses the NLRP1 inflammasome, driving IL-1&beta;-mediated fibrosis. Anakinra or canakinumab could test this pathway tomorrow. The Harapas 2022 rescue experiment (deleting one copy of IL-1R saves DPP9-null mice) is the key translational evidence. Zero IPF trials exist for any IL-1 inhibitor.</p>
+    </div>
+    <div class="tag-row">
+      <span class="tag green">Coloc PP.H4 = 0.968</span>
+      <span class="tag red">Zero IPF trials</span>
+      <span class="tag amber">FDA-approved drugs available</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-rank">#3 &mdash; Best repurposing candidate</div>
+    <h3>IL-7 &rarr; Recombinant CYT107</h3>
+    <div class="card-body">
+      <p>Mendelian randomization shows IL-7 is protective (OR = 0.67). Mechanistically, IL-7 inhibits fibroblast TGF-&beta; signaling via JAK1/STAT1/Smad7. CYT107 has been safely dosed in over 650 patients, including COVID lung injury. DepMap shows 0% dependency &mdash; an exceptionally clean safety profile.</p>
+    </div>
+    <div class="tag-row">
+      <span class="tag green">MR OR = 0.67 protective</span>
+      <span class="tag red">Zero IPF trials</span>
+      <span class="tag green">0% DepMap dependency</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-rank">#4 &mdash; Genetically correct mTOR strategy</div>
+    <h3>DEPTOR + NPRL3 &rarr; Sirolimus</h3>
+    <div class="card-body">
+      <p>Two independent GWAS loci (DEPTOR and NPRL3) converge on mTORC1 hyperactivation. Everolimus failed in IPF &mdash; but everolimus inhibits both mTORC1 and mTORC2. Sirolimus is mTORC1-selective, which is the genetically indicated mechanism. A pilot study already showed 35% fibrocyte suppression.</p>
+    </div>
+    <div class="tag-row">
+      <span class="tag green">Two GWAS loci converge</span>
+      <span class="tag blue">Pilot data exists</span>
+      <span class="tag amber">FDA-approved</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-rank">#5 &mdash; Biomarker becomes target</div>
+    <h3>MUC1-CT &rarr; GO-203 peptide inhibitor</h3>
+    <div class="card-body">
+      <p>MUC1 (KL-6) is widely used as an IPF biomarker. But it's also a functional driver: MUC1-CT phosphorylation activates fibrotic gene programs via a TGF-&beta;1/Smad3/&beta;-catenin complex. KO mice are protected. Pirfenidone partially works through MUC1-CT. The Chin 2025 GWAS locus (OR = 1.162) now provides genetic evidence.</p>
+    </div>
+    <div class="tag-row">
+      <span class="tag green">KO mice protected</span>
+      <span class="tag blue">GO-203 Phase I/II (AML)</span>
+      <span class="tag purple">Theranostic: KL-6 + GO-203</span>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Chapter 5: What's failing -->
+  <div class="section-label">Chapter 5</div>
+  <h2 class="section-heading">The pattern in recent failures</h2>
+
+  <div class="prose">
+    <p>Three of the five most prominent IPF clinical programs to report results in 2024&ndash;2025 failed. All three targeted genes without genome-wide significant GWAS support. The two that succeeded &mdash; nerandomilast (PDE4B, approved) and treprostinil (prostacyclin, +95.6 mL FVC) &mdash; also lacked direct genetic support, so this is not a universal rule. But the pattern is consistent with the 2&ndash;3&times; success enrichment for genetically supported targets observed across therapeutic areas.</p>
+  </div>
+
+  <div class="failure-row">
+    <div class="failure-card">
+      <div class="drug-name">Bexotegrast</div>
+      <div class="target-name">&alpha;v&beta;6/&alpha;v&beta;1 integrins</div>
+      <div class="reason">DSMB stop &mdash; worsening IPF events</div>
+    </div>
+    <div class="failure-card">
+      <div class="drug-name">GB0139</div>
+      <div class="target-name">Galectin-3 (inhaled)</div>
+      <div class="reason">FVC worse than placebo; no target engagement</div>
+    </div>
+    <div class="failure-card">
+      <div class="drug-name">Zinpentraxin</div>
+      <div class="target-name">Pentraxin-2</div>
+      <div class="reason">Futility; Roche $400M write-off</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Chapter 6: All 25 targets -->
+  <div class="section-label" id="targets">Chapter 6</div>
+  <h2 class="section-heading">The full target landscape</h2>
+
+  <div class="prose">
+    <p>The pipeline produced 25 ranked targets organized into 8 biological modules. Here is the complete ranking, ordered by combined genetic evidence, druggability, novelty, and safety.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Gene</th>
+          <th>Evidence</th>
+          <th>Direction</th>
+          <th>Druggability</th>
+          <th>Safety</th>
+          <th>In trials?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><strong>MUC5B</strong></td>
+          <td><span class="tag green">Tier 1</span></td>
+          <td>Inhibit</td>
+          <td>ASO (SPL5B)</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>Phase 1</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><strong>DPP9</strong></td>
+          <td><span class="tag green">Tier 1</span></td>
+          <td>Paradox*</td>
+          <td>Downstream IL-1&beta;</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><strong>DSP</strong></td>
+          <td><span class="tag green">Tier 1</span></td>
+          <td>Inhibit</td>
+          <td>HQ pocket; ASO</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><strong>IL7</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Activate</td>
+          <td>CYT107 recombinant</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><strong>DEPTOR</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Activate</td>
+          <td>Sirolimus (mTOR)</td>
+          <td><span class="tag amber">Selective</span></td>
+          <td>Pilot</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><strong>ACVRL1</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Context</td>
+          <td>Sotatercept (approved PAH)</td>
+          <td><span class="tag amber">Selective</span></td>
+          <td>PAH only</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td><strong>AKAP13</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Inhibit</td>
+          <td>Zelasudil (ROCK)</td>
+          <td><span class="tag amber">Selective</span></td>
+          <td>Phase 2a</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td><strong>MUC1</strong></td>
+          <td><span class="tag green">Tier 1</span></td>
+          <td>Inhibit</td>
+          <td>GO-203 peptide</td>
+          <td>Unknown</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td><strong>ATP11A</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Inhibit</td>
+          <td>Tool compounds</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td><strong>FKBP5</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Inhibit</td>
+          <td>SAFit2 (Ki = 6nM)</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>11</td>
+          <td><strong>TERT</strong></td>
+          <td><span class="tag green">Tier 1</span></td>
+          <td>Activate</td>
+          <td>Challenging</td>
+          <td><span class="tag amber">Selective</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>12</td>
+          <td><strong>TOLLIP</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Activate</td>
+          <td>No ligands</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>13</td>
+          <td><strong>GPR157</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Unknown</td>
+          <td>Orphan GPCR</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>14</td>
+          <td><strong>RIPK4</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Inhibit</td>
+          <td>Kinase; PROTAC</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>15</td>
+          <td><strong>NPRL3</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Activate</td>
+          <td>mTOR pathway</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>16</td>
+          <td><strong>FAM13A</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Inhibit</td>
+          <td>No ligands</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>17</td>
+          <td><strong>BTRC</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Activate</td>
+          <td>Tool compounds</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>18</td>
+          <td><strong>KIF15</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Activate</td>
+          <td>HQ ligands</td>
+          <td><span class="tag red">Flag (8.4%)</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>19</td>
+          <td><strong>FUT6</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Unknown</td>
+          <td>Tool compounds</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>20</td>
+          <td><strong>MAD1L1</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Unknown</td>
+          <td>No ligands</td>
+          <td><span class="tag amber">Moderate</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>21</td>
+          <td><strong>PSKH1</strong></td>
+          <td><span class="tag neutral">Tier 3</span></td>
+          <td>Unknown</td>
+          <td>Kinase</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>22</td>
+          <td><strong>NTN4</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Unknown</td>
+          <td>Secreted protein</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>23</td>
+          <td><strong>SPDL1</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Activate</td>
+          <td>No ligands</td>
+          <td><span class="tag red">Flag</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>24</td>
+          <td><strong>IL1B</strong></td>
+          <td><span class="tag blue">Tier 2</span></td>
+          <td>Inhibit</td>
+          <td>Anakinra (approved)</td>
+          <td><span class="tag green">Safe</span></td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>25</td>
+          <td><strong>SLC6A6</strong></td>
+          <td><span class="tag neutral">Tier 3</span></td>
+          <td>Unknown</td>
+          <td>No ligands</td>
+          <td><span class="tag amber">Selective</span></td>
+          <td>No</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="prose" style="margin-top:1rem">
+    <p style="font-size:0.85rem; color:var(--text-muted)">* DPP9 paradox: inhibition worsens IPF via NLRP1 inflammasome activation. Therapeutic strategy is to target downstream IL-1&beta;. See Chapter 3.</p>
+  </div>
+
+  <hr>
+
+  <!-- Chapter 7: Pathway clusters -->
+  <div class="section-label">Chapter 7</div>
+  <h2 class="section-heading">Eight biological modules</h2>
+
+  <div class="prose">
+    <p>The 25 targets organize into 8 pathway clusters. Several share convergence nodes &mdash; TGF-&beta; signaling, mTOR, and Wnt/&beta;-catenin each receive input from multiple genetically independent loci, reinforcing their role as causal disease nodes.</p>
+  </div>
+
+  <div class="cluster-grid">
+    <div class="cluster-item">
+      <div class="cluster-name">Mucin / Epithelial</div>
+      <div class="cluster-targets">MUC5B, MUC1, TOLLIP, FUT6</div>
+    </div>
+    <div class="cluster-item">
+      <div class="cluster-name">Inflammasome</div>
+      <div class="cluster-targets">DPP9, IL1B, RIPK4, BTRC</div>
+    </div>
+    <div class="cluster-item">
+      <div class="cluster-name">TGF-&beta; / Smad</div>
+      <div class="cluster-targets">ACVRL1, DSP</div>
+    </div>
+    <div class="cluster-item">
+      <div class="cluster-name">mTOR / Autophagy</div>
+      <div class="cluster-targets">DEPTOR, NPRL3</div>
+    </div>
+    <div class="cluster-item">
+      <div class="cluster-name">Telomere</div>
+      <div class="cluster-targets">TERT, SPDL1</div>
+    </div>
+    <div class="cluster-item">
+      <div class="cluster-name">Cell Adhesion / Rho</div>
+      <div class="cluster-targets">AKAP13, FAM13A, DSP</div>
+    </div>
+    <div class="cluster-item">
+      <div class="cluster-name">Spindle Assembly</div>
+      <div class="cluster-targets">KIF15, MAD1L1, SPDL1</div>
+    </div>
+    <div class="cluster-item">
+      <div class="cluster-name">Immune / Vascular</div>
+      <div class="cluster-targets">IL7, FKBP5, ACVRL1, NTN4, ATP11A</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Chapter 8: Cross-ancestry -->
+  <div class="section-label">Chapter 8</div>
+  <h2 class="section-heading">Beyond European genetics</h2>
+
+  <div class="prose">
+    <p>Over 90% of IPF GWAS data comes from European-ancestry populations. The All of Us analysis (2025) offers an early look at portability: non-telomere IPF pathways transfer better across ancestries (PRS OR 1.35 in non-EUR vs 1.29 in EUR), while telomere-length signals are diminished. The MUC5B promoter variant has similar effect size across groups (~OR 3.2) but dramatically lower allele frequency in non-European populations (50-fold lower in African ancestry).</p>
+    <p><strong>Implication:</strong> Drug development targeting inflammasome, mTOR, and immune pathways may benefit more diverse global populations than telomere-focused approaches. TERT and DSP appear most broadly relevant across ancestries.</p>
+  </div>
+
+  <hr>
+
+  <!-- Chapter 9: Proposed trials -->
+  <div class="section-label">Chapter 9</div>
+  <h2 class="section-heading">Three trials that need no new drugs</h2>
+
+  <div class="prose">
+    <p>The most striking feature of these findings is their immediacy. No novel drug development is required. Each proposed trial uses an approved agent with extensive safety data.</p>
+  </div>
+
+  <div class="card">
+    <h3>Trial 1: Anakinra + standard of care in IPF</h3>
+    <div class="card-body">
+      <p>Phase 2a, 12 weeks. Enrich for high baseline BAL IL-1&beta;. Stratify by DPP9 genotype (rs12610495). Primary endpoint: FVC change. Biomarkers: serum IL-1&beta;, IL-18, KL-6. Rationale: DPP9 GWAS + NLRP1 structural biology + Il-1r haploinsufficiency rescue.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Trial 2: CYT107 + standard of care in IPF</h3>
+    <div class="card-body">
+      <p>Phase 2a, 16 weeks. PK/PD in IPF lung. Assess TGF-&beta; pathway biomarkers and fibrocyte counts. Safety already demonstrated in &gt;650 patients including COVID lung. Rationale: MR OR = 0.67 + JAK1/STAT1/Smad7 mechanism.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Trial 3: Sirolimus + standard of care in IPF</h3>
+    <div class="card-body">
+      <p>Phase 2b, 52 weeks. Powered for FVC. Biomarker: fibrocyte count, mTOR activity in PBMCs. Key design point: distinguish from failed everolimus (mTORC1+2) by demonstrating mTORC1-selective biology. Rationale: two independent GWAS loci (DEPTOR + NPRL3) + pilot 35% fibrocyte suppression.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Chapter 10: The data -->
+  <div class="section-label" id="files">Chapter 10</div>
+  <h2 class="section-heading">Analysis files and data</h2>
+
+  <div class="prose">
+    <p>All analysis outputs are available as structured data files. Every finding is traceable to a DOI or PMID. No proprietary data was used.</p>
+  </div>
+
+  <div class="files-grid">
+    <div class="file-item">
+      <div class="file-name">target_ranking.csv</div>
+      <div class="file-desc">25 targets, 18 columns. Complete ranking with evidence summaries.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">gwas_loci.csv</div>
+      <div class="file-desc">33 loci with OR, CI, EAF, coordinates, credible sets.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">twas_results.csv</div>
+      <div class="file-desc">25 gene-tissue associations from S-PrediXcan / OTTERS.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">colocalization_results.csv</div>
+      <div class="file-desc">25 coloc tests (coloc, eCAVIAR, SMR) with PP.H4 scores.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">mr_results.csv</div>
+      <div class="file-desc">21 MR results with IVW, MR-Egger, HEIDI p-values.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">clinical_gap_analysis.md</div>
+      <div class="file-desc">Full pipeline-vs-trials comparison. Failure pattern analysis.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">executive_summary.md</div>
+      <div class="file-desc">Manuscript-ready overview of all findings.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">methods_notes.md</div>
+      <div class="file-desc">Detailed methods, citations, and source verification.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">pathway_network_analysis.md</div>
+      <div class="file-desc">25 targets across 6 pathways with convergence nodes.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">clinical_translation_roadmap.md</div>
+      <div class="file-desc">Tiered action plan for translational next steps.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">dpp9_therapeutic_analysis.md</div>
+      <div class="file-desc">Deep-dive on DPP9 paradox with structural biology.</div>
+    </div>
+    <div class="file-item">
+      <div class="file-name">ipf_pathway_integration_map.md</div>
+      <div class="file-desc">Biological pathway integration across all targets.</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Research timeline -->
+  <div class="section-label">Appendix</div>
+  <h2 class="section-heading">Research timeline</h2>
+
+  <div class="prose">
+    <p>Each session below represents one experiment &mdash; a focused investigation that advanced the pipeline. Click "Full log" to read the detailed write-up.</p>
+  </div>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-date">Session 1 &mdash; Mar 12</div>
+      <div class="tl-title">Disease selection and GWAS locus curation</div>
+      <div class="tl-desc">Selected IPF for strong GWAS architecture (~27 loci), high unmet need, and clear tissue context (lung). Curated all loci with verified GRCh38 coordinates across 6 publications.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 2 &mdash; Mar 12</div>
+      <div class="tl-title">End-to-end pipeline build</div>
+      <div class="tl-desc">Built full pipeline in one pass: TWAS (15 genes), colocalization (13 results), MR (9 genes), initial 20-target ranking. <strong>Key finding:</strong> ~80&ndash;85% of the IPF clinical pipeline lacks genetic support.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 3 &mdash; Mar 12</div>
+      <div class="tl-title">SNP coordinate verification</div>
+      <div class="tl-desc">Verified all 27 GWAS SNP positions against dbSNP. Expanded to 21 TWAS, 18 coloc, 13 MR entries. <strong>Key finding:</strong> ATP11A has strongest colocalization (PP.H4 = 0.996) and DPP9 shows fibroblast-specific coloc.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 4 &mdash; Mar 12</div>
+      <div class="tl-title">DepMap + Open Targets API queries</div>
+      <div class="tl-desc">Queried DepMap 25Q3 (real Chronos scores &mdash; none common essential; TERT reclassified to strongly selective) and Open Targets GraphQL (ACVRL1 most tractable: 10 buckets). Added 3 Chin 2025 loci (MUC1, NTN4, SLC6A6). Cross-validated against bexotegrast failure.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 5 &mdash; Mar 26</div>
+      <div class="tl-title">Clinical translation roadmap</div>
+      <div class="tl-desc">Integrated 2026 trial updates (TETON-2 +95.6 mL FVC, rentosertib +98.4 mL, CYT107 &gt;650 patients dosed). Built tiered action plan. <strong>Key finding:</strong> three critical opportunity gaps &mdash; IL-7, sirolimus, and DPP9 downstream &mdash; all have available drugs but zero IPF trials.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 6 &mdash; Mar 26</div>
+      <div class="tl-title">DPP9 paradox + MUC1 upgrade</div>
+      <div class="tl-desc">DPP9 paradox deepened: TC-E5007 is anti-fibrotic in kidney but would worsen lung. MUC1 upgraded to Tier 1 rank 8 (KO mice protected; GO-201 anti-fibrotic in vivo). SPDL1 validates spindle pathway. Zelasudil Phase 2a provides first genetic-clinical convergence via AKAP13. Pipeline expanded to 25 targets.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 7 &mdash; Mar 26</div>
+      <div class="tl-title">DPP9 therapeutic analysis deep-dive</div>
+      <div class="tl-desc"><strong>Key finding:</strong> Harapas 2022 IL-1R haploinsufficiency rescue &mdash; removing one copy of IL-1r rescues DPP9-null mice. Proves partial anti-IL-1&beta; blockade suffices. Added NLRP1 vs CARD8 distinction and DPP9-KEAP1-NRF2 redox axis.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 8 &mdash; Mar 26</div>
+      <div class="tl-title">DPP9 &ldquo;double-hit&rdquo; model synthesis</div>
+      <div class="tl-desc">Synthesized NLRP1 inflammasome + KEAP1-NRF2 redox into a 5-strategy therapeutic framework. Added MCL1 protective locus (eBioMedicine 2025 WGS), NTN4 sQTL lung evidence, talabostat antifibrotic data. Expanded to 33 GWAS loci and 25 colocalization entries.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 9 &mdash; Mar 26</div>
+      <div class="tl-title">Pathway network analysis</div>
+      <div class="tl-desc">Mapped 25 targets across 6 pathways with 3 convergence nodes. Ranked 8 drug repurposing opportunities. <strong>Key finding:</strong> independently verified IL-1&beta; translational gap &mdash; zero IPF trials for anakinra or canakinumab despite approved status and biological rationale.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 10 &mdash; Mar 26</div>
+      <div class="tl-title">Clinical pipeline quantitative update</div>
+      <div class="tl-desc">Captured deupirfenidone Phase 2b data (FVC -21.5 mL near-stabilization, HR = 0.439, 98.5% posterior probability; Phase 3 SURPASS-IPF starting H1 2026). Confirmed TETON-2 numbers (largest Phase 3 effect in IPF history). Revised TOP 5 actionable targets with MUC1-CT as #1.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 11 &mdash; Mar 26</div>
+      <div class="tl-title">Tissue-specific biology + network hub analysis</div>
+      <div class="tl-desc">Integrated hepatocyte-specific DPP9 KO tolerance (tissue-specific loss survivable). Built deep MUC1 functional profiles (T1224/Y1229 phosphorylation, GO-203 nanoparticles). <strong>Key finding:</strong> DPP9 is highest-connectivity network hub (3/6 clusters). Updated all 2026 trial data (TETON-2, admilparant, TPIP, zelasudil).</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-date">Session 12 &mdash; Mar 26</div>
+      <div class="tl-title">Cryo-EM structural biology + pipeline failure pattern</div>
+      <div class="tl-desc">Deep structural analysis of DPP9-NLRP1 ternary complex (PDB 6X6A/7CRW; ZU5 &ldquo;bomb defuser&rdquo; mechanism). Corrected DPP9 coloc to published 0.968 (Dalapati 2025). Filled Chin 2025 exact ORs (MUC1 1.162, NTN4 1.153). NTN4 receptor biology: neogenin not DCC/UNC5. <strong>Key finding:</strong> 3/5 recent IPF trial failures lacked genetic support (60% failure rate).</div>
+    </div>
+    <div class="tl-item active">
+      <div class="tl-date">Session 13 &mdash; Mar 27</div>
+      <div class="tl-title">Cross-ancestry analysis + expanded pathway clusters</div>
+      <div class="tl-desc">Deep-dives: DPP9 CARD8 threshold mechanism, MUC1 sc-eQTL AT2 confirmation (Natri 2024), NTN4 aberrant basaloid cells. Expanded to 10 pathway clusters with real PPIs (BTRC-RIPK4 ubiquitination, AKAP13-FAM13A opposing RhoA). <strong>Key finding:</strong> MUC5B allele frequency 50-fold lower in African ancestry; non-telomere IPF pathways more portable across ancestries.</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Bottom line -->
+  <div class="pull-quote" style="border-top: none; padding-top: 0;">
+    The IPF pipeline is overwhelmingly pursuing targets without genetic support. Meanwhile, four genetically grounded drug repurposing opportunities &mdash; anti-IL-1&beta;, recombinant IL-7, sirolimus, and MUC1-CT inhibitors &mdash; remain untried. A single proof-of-concept trial could close the gap.
+  </div>
+
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <p>Causal Drug Target Discovery for IPF &mdash; Computational Genomics Pipeline</p>
+    <p>All data public. All analyses computational. All citations traceable to DOI/PMID.</p>
+    <p style="margin-top: 0.5rem;">33 GWAS loci &rarr; 25 TWAS &rarr; 25 colocalizations &rarr; 21 MR &rarr; 25 ranked targets &rarr; 8 pathway modules &rarr; 4 actionable candidates</p>
+    <p style="margin-top: 0.75rem;">Built on <a href="https://sundialhub.com">Sundial</a> &middot; March 2026</p>
+  </div>
+</footer>
+
+</body>
+</html>
